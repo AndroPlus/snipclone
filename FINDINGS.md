@@ -69,13 +69,19 @@ mode allows a delay.
 
 ## What SnipClone builds, and what it leaves out
 
-| Feature | Original | SnipClone |
+SnipClone 2.0 is written in C# with WPF on .NET 9, the native Windows stack closest to the original's
+C++/WinRT + XAML. Version 1 was a Python/tkinter prototype; it is kept under the `v1-python` tag.
+
+| Feature | Original | SnipClone 2.0 |
 |---|---|---|
-| Rectangle, Window, Fullscreen and Freeform | Windows.Graphics.Capture + XAML overlay | PIL `ImageGrab` of all screens + tkinter overlay with the same "frozen snapshot + smoke" design |
-| Window highlight | `WindowSelection` | `EnumWindows` in z-order + `DwmGetWindowAttribute` frame bounds |
-| Color picker (HEX/RGB/HSL) | Auxiliary mode | Included |
-| Delay | `SnipDelayOption` | None, 3, 5 or 10 s. Rectangle, Window and Freeform only, because a full screen is captured anyway |
-| Auto-copy and auto-save | Settings | CF_DIB clipboard + `Pictures\Screenshots` |
-| Pen, highlighter, stroke eraser, shapes, text, crop, undo/redo | AnnotateCanvas | Included, using a vector op list rendered with PIL |
-| Global hotkey | `ms-screenclip` via Win+Shift+S (owned by Windows) | `Ctrl+Alt+S`, using `RegisterHotKey` |
+| Rectangle, Fullscreen and Freeform | Windows.Graphics.Capture + XAML overlay | GDI copy of the virtual screen shown in a WPF overlay with the same "frozen snapshot + smoke" design. The selection is revealed through a clip geometry |
+| Window snip | Windows.Graphics.Capture (`CaptureInterop.CreateCaptureItemForDesktop/ForMonitor` were observed) + the `graphicsCaptureWithoutBorder` capability | **The same API family:** `IGraphicsCaptureItemInterop.CreateForWindow` → `Direct3D11CaptureFramePool` with `IsBorderRequired = false`. It captures the window's own surface, so windows on top of it don't appear |
+| Window highlight | `WindowSelection.HighlightWindow` | `EnumWindows` in z-order + `DwmGetWindowAttribute` frame bounds |
+| Color picker (HEX/RGB/HSL) | Auxiliary mode + `ColorFormat` | Included |
+| Delay | `SnipDelayOption` | None, 3, 5 or 10 s, for the modes that support it |
+| Auto-copy and auto-save | `IsAutoCopyScreenshotToClipboardOn`, `IsAutoSaveScreenshotsOn` | WPF clipboard + PNG in `Pictures\Screenshots` |
+| Pen, highlighter, stroke eraser | AnnotateCanvas (`BallpointPen`, `Highlighter`, `StrokeEraser`) | WPF `InkCanvas` with highlighter drawing attributes and `EraseByStroke` |
+| Shapes, text, crop, undo/redo | `ShapeType`, `TextEdit`, `CropRectangle`, undo/redo operations | Shapes are stored as ink strokes, so the eraser handles them. Text labels, crop, and snapshot-based undo/redo |
+| Per-monitor DPI | — | PerMonitorV2 manifest. 1 overlay unit = 1 physical pixel, and snips open at 1:1 size |
+| Global hotkey | `ms-screenclip` via Win+Shift+S (owned by Windows) | The first free one of Ctrl+Alt+S, Ctrl+Shift+Alt+S, Ctrl+Alt+Q and Ctrl+Print Screen, using `RegisterHotKey` |
 | Text extractor (OCR), AI smart crop, recording, QR codes, Copilot/visual search | OneOCR, ONNX models, MediaCapture | **Not included**: they depend on proprietary models or need a large separate project |
